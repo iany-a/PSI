@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz with Feedback</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .question-img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        /* Styles for Feedback */
+        .option-label {
+            display: block;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .correct {
+            background-color: #d4edda !important;
+            border-color: #28a745 !important;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .wrong {
+            background-color: #f8d7da !important;
+            border-color: #dc3545 !important;
+            color: #721c24;
+        }
+
+        .btn {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        #submit-btn {
+            background: #007bff;
+            color: white;
+        }
+
+        #next-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #question {
+            white-space: pre-line;
+            /* This makes your \n breaks work again! */
+            margin-bottom: 10px;
+            /* Optional: adds a little space below the question */
+        }
+    </style>
+</head>
+
+<body>
+
+    <body>
+
+        <div id="start-screen" class="quiz-container">
+            <h2 style="text-align: center;">Quiz Settings</h2>
+            <p style="text-align: center;">How many questions would you like to attempt?</p>
+            <input type="number" id="num-questions" value="28" min="1" max="100"
+                style="display: block; width: 80%; margin: 10px auto; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+            <button id="begin-quiz-btn" class="btn" style="background: #007bff; color: white;">Start Quiz</button>
+        </div>
+        <div id="quiz" class="quiz-container hidden">
+            <img id="q-image" class="question-img" src="" alt="">
+            <div id="progress-counter" style="font-weight: bold; color: #666; margin-bottom: 10px;">
+                Question 1 of 28
+            </div>
+            <h2 id="question"></h2>
+            <div id="answer-buttons"></div>
+
+            <button id="submit-btn" class="btn">Submit Answer</button>
+            <button id="next-btn" class="btn hidden">Next Question</button>
+        </div>
+
+        <div id="score-container" class="quiz-container hidden">
+            <h2 style="text-align: center;">Finished!</h2>
+            <p id="score-text" style="text-align: center; font-size: 1.2rem;"></p>
+            <button class="btn" style="background:#333; color:white;" onclick="location.reload()">Try Again</button>
+        </div>
+
+        <script>
+            const questionPool = [
+                {
+                    question: "Which statements are the correct about the life cycle of a computer system...: \n 1. it is a template for ordering the activities of the computer system; \n\
+                2. it is included in the development cycle of the computer system; \n\
+                3. it can be organized in 5 stages (identification of requirements, analysis, design, implementation, maintenance); \n\
+                4. it ends with the decision to abandon the system and replace it with a new system.",
+                    answers: [
+                        { text: "2+3+4", correct: false },
+                        { text: "1+2", correct: false },
+                        { text: "3+4", correct: false },
+                        { text: "1+3+4", correct: true }
+                    ]
+                },
+
+                {
+                    question: "What does Continuous Deployment mean in the DevOps methodology?",
+                    answers: [
+                        { text: "An anual process for releasing new application versions", correct: false },
+                        { text: "A process where every validated code change is automatically deployed to production", correct: true },
+                        { text: "A strategy to prevent any changes in the production environment", correct: false },
+                        { text: "A method for automatically backing up applications", correct: false }
+                    ]
+                },
+                {
+                    question: "You can model the following situations with a state machine diagram:\n i. The states that the object of a class can have.\n ii. Possible transitions from one state to another.\n iii. Events that trigger transitions.\n iv.Activities that are executed while the object is in a certain state or while a transition is occurring.",
+                    answers: [
+                        { text: "I+II+III+IV", correct: true },
+                        { text: "I+II+III", correct: false },
+                        { text: "I+II", correct: false },
+                        { text: "I", correct: false }
+                    ]
+                },
+                {
+                    question: "You are given the following clipping of a UML2 class diagram. \n Which of the following statements are FALSE?",
+                    image: "./images/UML2.png",
+                    answers: [
+                        { text: "An object of A may or may not contain objects of C.", correct: false },
+                        { text: "An instance of A can see y.", correct: false },
+                        { text: "Objects of B and D can see g", correct: true },
+                        { text: "Objects of C and B can see f", correct: false }
+                    ]
+                },
+                {
+                    question: "Relationships between components in a component diagram show that:",
+                    answers: [
+                        { text: "The classes included in the client component are interfaces of the classes in the supplier component;", correct: false },
+                        { text: "The classes included in the client component are composed of classes included in the supplier component;", correct: false },
+                        { text: "The classes included in the client component can inherit, instantiate or use classes included in the vendor component;", correct: true },
+                        { text: "The classes included in the client component cannot exist without the supplier component;", correct: false }
+                    ]
+                },
+                {
+                    question: "What defines the DevOps process loop?",
+                    answers: [
+                        { text: "Plan, build, release, deploy, monitor;", correct: false },
+                        { text: "Build, test, release, monitor;", correct: false },
+                        { text: "Plan, code, build, test, deploy, operate, monitor, plan;", correct: true },
+                        { text: "Code, test, deploy, operate, monitor, plan;", correct: false }
+                    ]
+                },
+                {
+                    question: "Which testing technique involves verifying software behavior without accessing the source code?",
+                    answers: [
+                        { text: "Profiling testing", correct: false },
+                        { text: "Static testing", correct: false },
+                        { text: "Black box testing", correct: true },
+                        { text: "White box testing", correct: false }
+                    ]
+                },
+                {
+                    question: "In a UML state-machine diagram, a state:",
+                    answers: [
+                        { text: "describes a workflow;", correct: false },
+                        { text: "may include special actions;", correct: true },
+                        { text: "is included in the class diagram;", correct: false },
+                        { text: "is included in the activity diagram;", correct: false }
+                    ]
+                },
+                {
+                    question: "In a decision node of an activity diagram:",
+                    answers: [
+                        { text: "more flow enter and more than one come out;", correct: false },
+                        { text: "several flows enter and one come out;", correct: false },
+                        { text: "you can simulate the DO-UNTIL control structure from programming;", correct: false },
+                        { text: "output flows have mutually exclusive conditions;", correct: true }
+                    ]
+                },
+                {
+                    question: "What elements should be added/ defined in a design class diagram?",
+                    answers: [
+                        { text: "associations", correct: false },
+                        { text: "entity classes", correct: false },
+                        { text: "stereotypes, controller classes, navigability, member's complete signature", correct: true },
+                        { text: "multiplicities", correct: false }
+                    ]
+                },
+                {
+                    question: "What is the first step in designing a database?",
+                    answers: [
+                        { text: "SQL implementation", correct: false },
+                        { text: "Creating indexes", correct: false },
+                        { text: "Database normalization", correct: false },
+                        { text: "Defining the conceptual model", correct: true }
+                    ]
+                },
+                {
+                    question: "What does involve preventive maintenance?",
+                    answers: [
+                        { text: "making changes within the system in order to repair and remove defects or errors in design, programming, or implementation", correct: false },
+                        { text: "implementing new functional or non-functional system requirements", correct: false },
+                        { text: "making changes to the information system to enhance its functionality or to adapt it to a new environment", correct: false },
+                        { text: "changes made to the system to reduce or eliminate the risk of system failure", correct: true }
+                    ]
+                },
+                {
+                    question: "A shared aggregation between two classes (whole and parts) will be implemented:",
+                    answers: [
+                        { text: "By reference, adding a reference attribute to the Part class", correct: false },
+                        { text: "By reference, adding a reference attribute to the Whole class", correct: true },
+                        { text: "By value, adding an attribute to the Whole class", correct: false },
+                        { text: "By value, adding an attribute to the Part class", correct: false }
+                    ]
+                },
+                {
+                    question: "Robustness in design can be implemented by:",
+                    answers: [
+                        { text: "separating persistent functions from business functions and separating relational storage and objects", correct: true },
+                        { text: "using design patterns and separating relational storage and objects", correct: false },
+                        { text: "using design patterns", correct: false }
+                    ]
+                },
+                {
+                    question: "The design of coThe design of computer system security and controls can be carried out at the level of:",
+                    answers: [
+                        { text: "Application; database; network;", correct: false },
+                        { text: "Application, database, user interface;", correct: true },
+                        { text: "Company, application and database;", correct: false },
+                        { text: "Database, user interface; cloud;", correct: false }
+                    ]
+                },
+                {
+                    question: "What type of BPMN event is appropriate for modeling Approved expense budget? \n Choose one of the following:",
+                    answers: [
+                        { text: "timer", correct: false },
+                        { text: "conditional", correct: false },
+                        { text: "signal", correct: true },
+                        { text: "receive message", correct: false }
+                    ]
+                },
+                {
+                    question: "Which element is missing from the following collaboration diagram;",
+                    image: "./images/business.png",
+                    answers: [
+                        { text: "A data flow", correct: false },
+                        { text: "An intermdiate event", correct: false },
+                        { text: "A message flow", correct: false },
+                        { text: "A start event", correct: true }
+                    ]
+                },
+                {
+                    question: "Which of the following is a primary goal of software architectural design?",
+                    answers: [
+                        { text: "To create user interface mockups", correct: false },
+                        { text: "To define the high-level structure of the system, including its components and their interactions", correct: true },
+                        { text: "To conduct user acceptance testing", correct: false },
+                        { text: "to write detailed code for all modules", correct: false }
+                    ]
+                },
+                {
+                    question: "Which of these are the types of nodes used in the deployment diagram?",
+                    answers: [
+                        { text: "devices and artifacts", correct: false },
+                        { text: "devices and execution environments", correct: true },
+                        { text: "execution environments and stereotypes", correct: false },
+                        { text: "artifacts and stereotypes", correct: false }
+                    ]
+                },
+                {
+                    question: "Designing interfaces with other systems involves:",
+                    answers: [
+                        { text: "Designing graphic interface layouts;", correct: false },
+                        { text: "Designing the model of collaboration between processes from different systems;", correct: false },
+                        { text: "Designing how to connect and interact with other systems, whether internal or external;", correct: true },
+                        { text: "Designing dialogue with system users;", correct: false }
+                    ]
+                },
+                {
+                    question: "The boundary classes have the role of:",
+                    answers: [
+                        { text: "Identifying classes of the problem domain;", correct: false },
+                        { text: "Creating objects that must also exist after the system is turned off;", correct: false },
+                        { text: "Ensuring communication with actors or other computer systems.", correct: true },
+                        { text: "Mediating between boundary classes and entity classes;", correct: false }
+                    ]
+                },
+                {
+                    question: "In the context of software architecture, what is the main benefit of using containers?",
+                    answers: [
+                        { text: "They provide a lightweight environment for deploying applications with their dependencies ", correct: true },
+                        { text: "They allow multiple applications to run on different operating systems simultaneously", correct: false },
+                        { text: "They eliminate the need for virtualization", correct: false },
+                        { text: "They require dedicated hardware for each application", correct: false }
+                    ]
+                },
+                {
+                    question: "You are given the following activity diagram. Which of the following action sequences are possible during one execution of the activity diagram? \n I. A>B>C \n II. A>C>B \n III. A>B \n IV. A>C",
+                    image: "./images/activity.png",
+                    answers: [
+                        { text: "I+II", correct: false },
+                        { text: "I+III+IV", correct: false },
+                        { text: "II+IV", correct: false },
+                        { text: "III+IV", correct: true }
+                    ]
+                },
+                {
+                    question: "Within sequence diagrams...",
+                    answers: [
+                        { text: "the behavior of one object is modeled", correct: false },
+                        { text: "time is no separate dimension", correct: false },
+                        { text: "the chronological process of one object is modeled", correct: false },
+                        { text: "you can refer to other sequence diagrams", correct: true }
+                    ]
+                },
+                {
+                    question: "What is MOST important in an agile approach (according to the Agile Manifesto)?",
+                    answers: [
+                        { text: "People and how they communicate", correct: true },
+                        { text: "Control and management", correct: false },
+                        { text: "Process and tools", correct: false },
+                        { text: "Documenting and planning", correct: false }
+                    ]
+                },
+                {
+                    question: "When choosing an implementation strategy you have to take into consideration:\n [MULTIPLE CHOICE]",
+                    answers: [
+                        { text: "the degree of participation of the beneficiary in the implementation of the information system during the previous stages", correct: true },
+                        { text: "the originality of the computer system", correct: true },
+                        { text: "the volume of data and the diversity of their sources", correct: true },
+                        { text: "the degree of professional training of computer system users", correct: true },
+                        { text: "the nature and complexity of the designed computer system", correct: true }
+                    ]
+                },
+                {
+                    question: "A fork node of a UML2 activity diagram... \n 1. is used for modeling parallel threads \n 2. produces tokens for all outgoing edges \n 3. deletes tokens which are not accepted \n 4. is only valid when combined with a join node \n 5. is an alternative to the decision node.",
+                    answers: [
+                        { text: "1+2+3", correct: false },
+                        { text: "1+4", correct: false },
+                        { text: "1+2+3+4", correct: false },
+                        { text: "1+2", correct: true }
+                    ]
+                },
+                {
+                    question: "You are given the following activity diagram. Which of the following action sequences are possible during one execution of the activity diagram? \n\
+                1. A>B>C>D \n\
+                2. A>B>D>C \n\
+                3. A>C>B>D \n\
+                4. A>B>D \n\
+                5. A>C",
+                    image: "./images/activity2.png",
+                    answers: [
+                        { text: "1+2+4", correct: false },
+                        { text: "1+4+5", correct: false },
+                        { text: "1+2+3", correct: true },
+                        { text: "1+2", correct: false }
+                    ]
+                },
+                {
+                    question: "You are given the following clipping of a UML2 class diagram. Which of the following statements are true? Select one or more: \n [MULTIPLE CHOICE]",
+                    image: "./images/class.png",
+                    answers: [
+                        { text: "One tenant can rent multiple flats with different leasing contracts.", correct: true },
+                        { text: "One tenant can rent multiple flats with the same leasing contract.", correct: false },
+                        { text: "One flat can be rented by multiple tenants with the same leasing contract", correct: true },
+                        { text: "One flat can be rented by multiple tenants with different leasing contracts", correct: false }
+                    ]
+                },
+                {
+                    question: "Consider the following business process diagram fragment. \n\
+                The blue event on Task 7 represents:",
+                    image: "./images/BPD.png",
+                    answers: [
+                        { text: "A non-interrupting intermediate error event", correct: false },
+                        { text: "An interrupting intermediate signal event", correct: false },
+                        { text: "A non-interrupting intermediate signal event", correct: true },
+                        { text: "An interrupting intermediate error event", correct: false }
+                    ]
+                },
+                {
+                    question: "In BPMN, a message flow can be used to:",
+                    answers: [
+                        { text: "Represent branching and merging", correct: false },
+                        { text: "Connect thwo tasks in the same pool", correct: false },
+                        { text: "Transfer data between tasks", correct: false },
+                        { text: "Show message exchange between two participants", correct: true }
+                    ]
+                },
+                {
+                    question: "In order to accelerate the analysis, design and implementation phases, in methodologies based on rapid development, it is recommended to use: \n\
+                A. CASE tools \n\
+                B. Hierarchical databases \n\
+                C. code generators \n\
+                D. visual programming languages",
+                    answers: [
+                        { text: "A+C+D", correct: true },
+                        { text: "A+B+C", correct: false },
+                        { text: "B+C+D", correct: false },
+                        { text: "A+C", correct: false }
+                    ]
+                },
+                {
+                    question: "How do you model the following situation with a UML2 class diagram? \n\
+                Every restaurant has at least one kitchen, one kitchen is part of exactly one restaurant.",
+                    image: "./images/rest.png",
+                    answers: [
+                        { text: "I+IV", correct: false },
+                        { text: "IV", correct: false },
+                        { text: "III", correct: false },
+                        { text: "I", correct: true }
+                    ]
+                },
+                {
+                    question: "A class diagram",
+                    answers: [
+                        { text: "shows the dynamic view of a system.", correct: false },
+                        { text: "shows the practical view of a system.", correct: false },
+                        { text: "shows the interaction view of a system.", correct: false },
+                        { text: "shows the static view of a system.", correct: true }
+                    ]
+                },
+                {
+                    question: "Relationships between components in a component diagram show that:",
+                    answers: [
+                        { text: "The classes included in the client component can inherit, instantiate or use classes included in the supplier component; ", correct: true },
+                        { text: "The classes included in the client component cannot exist without the supplier component;", correct: false },
+                        { text: "The classes included in the client component are composed of classes included in the supplier component;", correct: false },
+                        { text: "The classes included in the client component are interfaces of the classes in the supplier component;", correct: false }
+                    ]
+                },
+                {
+                    question: "Components can be accessed:",
+                    answers: [
+                        { text: "directly", correct: false },
+                        { text: "by reusing classes", correct: false },
+                        { text: "through executables, linkable libraries, Web services, and mobile services.", correct: false },
+                        { text: "through their interfaces", correct: true }
+                    ]
+                },
+                {
+                    question: "Which of the following models does NOT contribute to the design of the database:",
+                    answers: [
+                        { text: "Object diagram;", correct: false },
+                        { text: "Class diagram;", correct: false },
+                        { text: "Entity-relationship diagram", correct: false },
+                        { text: "Sequence diagram;", correct: true }
+                    ]
+                },
+                {
+                    question: "Which of these are the types of nodes used in the deployment diagram?",
+                    answers: [
+                        { text: "devices and execution environments", correct: true },
+                        { text: "execution environments and stereotypes", correct: false },
+                        { text: "artifacts and stereotypes", correct: false },
+                        { text: "devices and artifacts", correct: false }
+                    ]
+                },
+                {
+                    question: "The deployment diagram shows:",
+                    answers: [
+                        { text: "Existing dependencies between various software components that compose an information system;", correct: false },
+                        { text: "How a system is divided into logical groups and the links between them", correct: false },
+                        { text: "Configuration of physical processing nodes during execution;", correct: true },
+                        { text: "Interactions that take place between various objects of a system, chronologically ordered;", correct: false }
+                    ]
+                },
+                {
+                    question: "Which of the following diagrams is not refined in the design stage:",
+                    answers: [
+                        { text: "Sequence diagrams;", correct: false },
+                        { text: "ERD diagram;", correct: false },
+                        { text: "Class diagram;", correct: false },
+                        { text: "State-machine diagram;", correct: true }
+                    ]
+                }, {
+                    question: "The design of the system environment consists of:",
+                    answers: [
+                        { text: "Identification of all the technologies necessary to support the implementation of the IT system;", correct: true },
+                        { text: "Establishing the technical level of the equipment with the necessary computer technology;", correct: false },
+                        { text: "Designing the configuration of the processing elements during execution", correct: false },
+                        { text: "Establishing the architecture of the information system;", correct: false }
+                    ]
+                }, {
+                    question: "The development cycle of a computer system includes:",
+                    answers: [
+                        { text: "The analysis phase;", correct: true },
+                        { text: "The maintenance phase;", correct: false },
+                        { text: "The elaboration phase;", correct: false },
+                        { text: "The life cycle of the computer system;", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following cannot be applied to DevOps methodology:",
+                    answers: [
+                        { text: "Addresses the gap between customer requirements and development - testing team ", correct: true },
+                        { text: "Intensifies reusability and automation", correct: false },
+                        { text: "Automated release management", correct: false },
+                        { text: "Addresses the gap between Development-Testing and Operational", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following are inappropriately used in this sequence diagram?",
+                    image: "./images/seq.png",
+                    answers: [
+                        { text: "the Borrow object", correct: true },
+                        { text: "the add_borrow message", correct: false },
+                        { text: "the Client actor", correct: false },
+                        { text: "the data storage symbol", correct: false }
+                    ]
+                }, {
+                    question: "What type of UML diagram can be used for user interfaces design?",
+                    answers: [
+                        { text: "state machine diagrams", correct: false },
+                        { text: "navigation charts", correct: true },
+                        { text: "use case diagrams", correct: false },
+                        { text: "activity diagrams", correct: false }
+                    ]
+                }, {
+                    question: "How can an object be mapped to a relational storage?",
+                    answers: [
+                        { text: "as a foreign key to connect with other objects", correct: false },
+                        { text: "as a row in the table OR as rows in more than one table", correct: true },
+                        { text: "as a reference table", correct: false },
+                        { text: "as a primary key to uniquely identify a row", correct: false }
+                    ]
+                }, {
+                    question: "You are given the following sequence diagram. Which traces are possible?",
+                    image: "./images/seq2.png",
+                    answers: [
+                        { text: "I+II+III", correct: false },
+                        { text: "I+IV", correct: true },
+                        { text: "I+II", correct: false },
+                        { text: "I+III+IV", correct: false }
+                    ]
+                }, {
+                    question: "What does the syntax for labeling a transition look like in a state-machine diagram?",
+                    answers: [
+                        { text: "event[guard]/effect", correct: true },
+                        { text: "[guard]effect/event", correct: false },
+                        { text: "[effect]guard/event", correct: false },
+                        { text: "[effect]event/guard", correct: false },
+                        { text: "effect[guard]/event", correct: false }
+                    ]
+                }, {
+                    question: "Stereotypes are added to classes in the stage of:",
+                    answers: [
+                        { text: "Specifications of the requrements", correct: false },
+                        { text: "Implementation", correct: false },
+                        { text: "Design", correct: true },
+                        { text: "Analysis", correct: false }
+                    ]
+                }, {
+                    question: "What is the primary purpose of the MVC (Model-View-Controller) architecture?",
+                    answers: [
+                        { text: "To ensure that all application logic is written in a single module", correct: false },
+                        { text: "To tightly couple the user interface and business logic for faster execution", correct: false },
+                        { text: "To separate concerns by dividing an application into three interconnected components: Model, View, and Control ", correct: true },
+                        { text: "To eliminate the need for frontend development", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following is not a role according to the SCRUM methodology:",
+                    answers: [
+                        { text: "SCRUM master", correct: false },
+                        { text: "development team", correct: false },
+                        { text: "team leader", correct: true },
+                        { text: "product owner", correct: false }
+                    ]
+                }, {
+                    question: "What type of testing verifies the interaction between system modules to ensure correct functionality?",
+                    answers: [
+                        { text: "Integration Testing", correct: true },
+                        { text: "Unit Testing", correct: false },
+                        { text: "Security Testing", correct: false },
+                        { text: "Regression testing", correct: false }
+                    ]
+                }, {
+                    question: "Corrective maintenance aims to:",
+                    answers: [
+                        { text: "repair and remove defects or errors in design, programming or implementation", correct: true },
+                        { text: "reduce or eliminate the risk of system failure", correct: false },
+                        { text: "enhance the system's functionality or to adapt it to a new environment", correct: false },
+                        { text: "implement new functional or non-functional system requirements", correct: false }
+                    ]
+                }, {
+                    question: "What techniques can be used for identifying class operations? \n\
+                I. Class - responsability cards \n\
+                II. Activity diagrams \n\
+                III. Sequence diagrams \n\
+                IV. Business process diagrams",
+                    answers: [
+                        { text: "I+II+III", correct: false },
+                        { text: "I+II", correct: false },
+                        { text: "I+III", correct: true },
+                        { text: "II+IV", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following statements about shared aggregations is true?",
+                    answers: [
+                        { text: "Chains of shared aggregation links may form a cycle", correct: false },
+                        { text: "Shared aggregations are used to express an is-a relationship", correct: false },
+                        { text: "A shared aggregation is shown by a solid-filled diamond on the end of an association line", correct: false },
+                        { text: "The multiplicity of a shared aggregation may be >=1", correct: true }
+                    ]
+                }, {
+                    question: "You are given the following sequence diagram. Which traces are possible?",
+                    image: "./images/seq3.png",
+                    answers: [
+                        { text: "a>c>b>d", correct: true },
+                        { text: "b>d>a>c", correct: false },
+                        { text: "a>b>c>d", correct: false },
+                        { text: "a>b>d>c", correct: false }
+                    ]
+                }, {
+                    question: "What is UML?",
+                    answers: [
+                        { text: "a case tool", correct: false },
+                        { text: "an object-oriented methodology", correct: false },
+                        { text: "a standard modeling language", correct: true },
+                        { text: "a formal language", correct: false }
+                    ]
+                }, {
+                    question: "The current trend in developing computer systems is:",
+                    answers: [
+                        { text: "reuse", correct: true },
+                        { text: "decentralization", correct: false },
+                        { text: "building closed systems", correct: false },
+                        { text: "increasing cost of computer systems implementation", correct: false }
+                    ]
+                }, {
+                    question: "What statements about deployment diagram are TRUE ? \n\
+                I. It is a part of physical deployment of a system \n\
+                II. It shows the configuration of runtime processing nodes\n\
+                III.  It is an important part of system architecture\n\
+                IV.  includes processors, connections, nodes and notes",
+                    answers: [
+                        { text: "I+II+III", correct: false },
+                        { text: "I+II+III+IV", correct: true },
+                        { text: "I+II", correct: false },
+                        { text: "I+III", correct: false }
+                    ]
+                }, {
+                    question: "You are given the following clipping of a UML2 class diagram. Which of the following statements are true? \n\
+                i. One object of B is associated with 1..* objects of D. \n\
+                ii. One object of a subclass of A is associated with * objects of C. \n\
+                iii. One object of D is associated with at least one object of B. \n\
+                iv. Direct instances of A exist ",
+                    image: "./images/abstract2.png",
+                    answers: [
+                        { text: "II+IV", correct: false },
+                        { text: "I+II+III+IV", correct: false },
+                        { text: "II+III", correct: true },
+                        { text: "II+III+IV", correct: false }
+                    ]
+                }, {
+                    question: "You are given the following clipping of a UML2 class diagram. Which of the following statements are true? [MULTIPLE CHOICE]",
+                    image: "./images/uml23.png",
+                    answers: [
+                        { text: "If an instance of B is deleted, all contained instances of A are deleted as well.", correct: false },
+                        { text: "One object of A may be associated with one object of B.", correct: false },
+                        { text: "The diamond near A is called composition.", correct: true },
+                        { text: "one object of B is contained in exactly one object of A.", correct: true },
+                        { text: "One object of B is associated with two other objects of B.", correct: false }
+                    ]
+                }, {
+                    question: "Enummerations....[MULTIPLE CHOICE]",
+                    answers: [
+                        { text: "are a user-definable data type which instances form a list of named literal values.", correct: true },
+                        { text: "have the keyword &lt;enumeration&gt;.", correct: true },
+                        { text: "may have operations.", correct: false }
+                    ]
+                }, {
+                    question: "You are given the following state machine diagram. When does a transition to state D occur?",
+                    image: "./images/statemachine.png",
+                    answers: [
+                        { text: "As soon as all effects within state B are finished", correct: false },
+                        { text: "As soon as b=0 and a exceeds the value 5.", correct: true },
+                        { text: "As soon as the event a>5 occurs and the guard is evaluated to true", correct: false },
+                        { text: "As soon as all effects within states A and B are finished", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following use cases are correct use cases when you want to design a use case diagram for an online book shop? \n [MULTIPLE CHOICE]",
+                    answers: [
+                        { text: "Order a book", correct: true },
+                        { text: "Cancel order", correct: true },
+                        { text: "Enter credit card details", correct: false },
+                        { text: "Look for a book", correct: true },
+                        { text: "Login", correct: false },
+                        { text: "Do not order a book", correct: false },
+                        { text: "Enter book title", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following statements characterize use cases? \n\
+                a. Use cases specify the functionalities and the behavior that the system which is being developed should have. \n\
+                b. Use cases specify the procedural process within a system. \n\
+                c. Use cases are derived from the clients' requests. \n\
+                d. Use cases are suitable for modeling interfaces between two systems.",
+                    answers: [
+                        { text: "a+c", correct: true },
+                        { text: "a+b", correct: false },
+                        { text: "a", correct: false },
+                        { text: "a+c+d", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following questions are useful when identifying the involved actors of a use case diagram? \n\
+                a. Who needs the system's support for their everyday work? \n\
+                b. Who or what is interested in the systems' results? \n\
+                c. Which hardware is available for the users of the system?",
+                    answers: [
+                        { text: "a", correct: false },
+                        { text: "a+b", correct: false },
+                        { text: "b", correct: false },
+                        { text: "a+c", correct: true }
+                    ]
+                }, {
+                    question: "There are 3 different types of staff members namely A, B and C. \n\
+                For a valid contract, the client, one staff member of Type A and two other staff members of either type (A, B or C) have to sign the contract. \n\
+                (Possible employee combinations: AAA, AAB, AAC, ABB, ACC, ABC) \n\
+                Choose the correct model.",
+                    image: "./images/usecase.png",
+                    answers: [
+                        { text: "a", correct: true },
+                        { text: "c", correct: false },
+                        { text: "b", correct: false },
+                        { text: "b+c", correct: false }
+                    ]
+                }, {
+                    question: "A person goes for lunch. In the course of that it might be necessary that the person withdraws cash from an ATM. Select one:",
+                    image: "./images/usecase2.png",
+                    answers: [
+                        { text: "b", correct: false },
+                        { text: "a", correct: true },
+                        { text: "None", correct: false },
+                        { text: "c", correct: false }
+                    ]
+                }, {
+                    question: "A mother cooks dinner together with her daughter. In the course of that, the mother also always has to mix the cocktails. Select one:",
+                    image: "./images/usecase3.png",
+                    answers: [
+                        { text: "b", correct: false },
+                        { text: "c", correct: false },
+                        { text: "None", correct: true },
+                        { text: "a", correct: false }
+                    ]
+                }, {
+                    question: "Which of the following statements about the given diagram clipping are true? Select one or more: \n\
+                a. A can execute the same use cases as B. \n\
+                b. A inherits all of B's associations. \n\
+                c. B inherits all of A's associations. \n\
+                d. B can execute the same use cases as A.",
+                    image: "./images/usecase4.png",
+                    answers: [
+                        { text: "a+b", correct: false },
+                        { text: "a+c", correct: false },
+                        { text: "c+d", correct: true },
+                        { text: "b+c", correct: false }
+                    ]
+                }
+                , {
+                    question: "You are given the following sequence diagram. Which traces are possible? [MULTIPLE CHOICE]",
+                    image: "./images/par.png",
+                    answers: [
+                        { text: "b>a>c", correct: false },
+                        { text: "a>b>c", correct: true },
+                        { text: "b>c>a", correct: false },
+                        { text: "c>b>a", correct: false },
+                        { text: "a>c>b", correct: true },
+                        { text: "c>a>b", correct: true }
+                    ]
+                }, {
+                    question: "You are given the following sequence diagram. Which traces are possible? \n [MULTIPLE CHOICES]",
+                    image: "./images/loop.png",
+                    answers: [
+                        { text: "d>a>b>c", correct: false },
+                        { text: "a>b>c>d", correct: true },
+                        { text: "b>a>c>d", correct: true },
+                        { text: "d>a>b>c", correct: false },
+                        { text: "d", correct: false },
+                        { text: "a>b>c>b>a>c>d", correct: true },
+                        { text: "b>c>a>a>b>c>d", correct: true }
+                    ]
+                }, {
+                    question: "You are given the following sequence diagram. Which operations does class C have according to the diagram?",
+                    image: "./images/seq69.png",
+                    answers: [
+                        { text: "y():int", correct: false },
+                        { text: "x():void", correct: false },
+                        { text: "x():int", correct: false },
+                        { text: "z():void", correct: false },
+                        { text: "y():void", correct: false },
+                        { text: "x():String", correct: false },
+                        { text: "z():int", correct: true }
+                    ]
+                }, {
+                    question: "What does involve perfective maintenance?",
+                    answers: [
+                        { text: "implementing new functional or non-functional system requirements", correct: true },
+                        { text: "making changes within the system in order to repair and remove defects or errors in design, programming, or implementation", correct: false },
+                        { text: "changes made to the system to reduce or eliminate the risk of system failure", correct: false },
+                        { text: "making changes to the information system to enhance its functionality or to adapt it to a new environment", correct: false }
+                    ]
+                }
+
+            ];
+
+            let questions = [];
+            let currentIdx = 0;
+            let score = 0;
+
+            const questionEl = document.getElementById("question");
+            const imageEl = document.getElementById("q-image");
+            const answersEl = document.getElementById("answer-buttons");
+            const submitBtn = document.getElementById("submit-btn");
+            const nextBtn = document.getElementById("next-btn");
+            const beginBtn = document.getElementById("begin-quiz-btn");
+            const startScreen = document.getElementById("start-screen");
+            const quizDiv = document.getElementById("quiz");
+            const numInput = document.getElementById("num-questions");
+            numInput.max = questionPool.length;
+
+            beginBtn.addEventListener("click", () => {
+                const amount = parseInt(numInput.value);
+
+                // Simple validation
+                if (isNaN(amount) || amount <= 0) {
+                    alert("Please enter a valid number of questions.");
+                    return;
+                }
+
+                // Initialize the quiz with the chosen amount
+                initializeQuiz(amount);
+
+                // Switch screens
+                startScreen.classList.add("hidden");
+                quizDiv.classList.remove("hidden");
+            });
+
+            function initializeQuiz(limit) {
+                // Shuffle the entire pool
+                const shuffled = [...questionPool].sort(() => Math.random() - 0.5);
+
+                // Take the first 28 (or the whole pool if it's smaller than 28)
+                questions = shuffled.slice(0, limit);
+
+                currentIdx = 0;
+                score = 0;
+                showQuestion();
+            }
+
+            function showQuestion() {
+                const q = questions[currentIdx];
+                document.getElementById("progress-counter").innerText = `Question ${currentIdx + 1} of ${questions.length}`;
+                const shuffledAnswers = [...q.answers].sort(() => Math.random() - 0.5);
+
+                questionEl.innerHTML = q.question; // Support for <br>
+
+                if (q.image) { imageEl.src = q.image; imageEl.style.display = "block"; }
+                else { imageEl.style.display = "none"; }
+
+                answersEl.innerHTML = '';
+
+                shuffledAnswers.forEach((ans) => {
+                    const label = document.createElement("label");
+                    label.className = "option-label";
+
+                    // Note: We use the answer object itself to check correctness later, 
+                    // so we can store the 'correct' status directly on the checkbox or label
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.dataset.correct = ans.correct; // Store the truth here!
+
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(` ${ans.text}`));
+                    answersEl.appendChild(label);
+                });
+
+
+                submitBtn.classList.remove("hidden");
+                nextBtn.classList.add("hidden");
+            }
+
+            submitBtn.addEventListener("click", () => {
+                const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                const labels = document.querySelectorAll('.option-label');
+
+                // 1. Check if ANYTHING is selected FIRST
+                const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+                if (selectedCheckboxes.length === 0) {
+                    alert("Please select at least one answer!");
+                    return; // This stops the rest of the code from running
+                }
+
+                // 2. If we reach here, a choice WAS made. Proceed with logic.
+                let isCorrect = true;
+
+                checkboxes.forEach((cb, i) => {
+                    const isChecked = cb.checked;
+                    const isActuallyCorrect = cb.dataset.correct === "true";
+
+                    // Highlight Logic
+                    if (isActuallyCorrect) {
+                        labels[i].classList.add("correct");
+                    } else if (isChecked && !isActuallyCorrect) {
+                        labels[i].classList.add("wrong");
+                    }
+
+                    // Verify if user selection matches the answer key exactly
+                    if (isChecked !== isActuallyCorrect) isCorrect = false;
+
+                    // Disable checkboxes now that the answer is submitted
+                    cb.disabled = true;
+                });
+
+                if (isCorrect) score++;
+
+                // Swap buttons
+                submitBtn.classList.add("hidden");
+                nextBtn.classList.remove("hidden");
+            });
+
+            nextBtn.addEventListener("click", () => {
+                currentIdx++;
+                if (currentIdx < questions.length) {
+                    showQuestion();
+                } else {
+                    document.getElementById("quiz").classList.add("hidden");
+                    const scoreContainer = document.getElementById("score-container");
+                    scoreContainer.classList.remove("hidden");
+                    document.getElementById("score-text").innerText = `Final Score: ${score} / ${questions.length}`;
+                }
+            });
+
+        </script>
+    </body>
+
+</html>
